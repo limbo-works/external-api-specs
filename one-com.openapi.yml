@@ -1,0 +1,194 @@
+---
+openapi: 3.1.0
+info:
+  title: One.com API
+  version: 0.1.0
+
+servers:
+  - url: https://one.com/admin/api
+
+components:
+  parameters:
+    domainPath:
+      name: domain
+      in: path
+      required: true
+      schema:
+        type: string
+      description: The name of the domain
+    idPath:
+      name: id
+      in: path
+      required: true
+      schema:
+        type: string
+      description: The id of the object
+    recordTypePath:
+      name: recordType
+      in: path
+      required: true
+      schema:
+        $ref: "#/components/schemas/DNSRecordType"
+      description: The type of records
+
+  securitySchemes:
+    cookieAuth:
+      type: apiKey
+      in: cookie
+      name: cookie.txt
+
+  schemas:
+    DNSRecordAttributeType:
+      type: string
+      enum:
+        - A
+        - AAAA
+        - CNAME
+        - MX
+        - TXT
+        - SRV
+        - TLSA
+        - SSHFP
+        - CAA
+        - NS
+        - DS
+
+    DNSRecordAttributes:
+      type: object
+      properties:
+        prefix:
+          type: string
+        type:
+          $ref: "#/components/schemas/DNSRecordAttributeType"
+        content:
+          type: string
+        priority:
+          type: integer
+        ttl:
+          type: integer
+      additionalProperties: false
+
+    DNSRecordMetadata:
+      type: "null"
+
+    DNSRecordType:
+      type: string
+      enum:
+        - dns_custom_records
+        - dns_service_records
+
+    DNSRecord:
+      type: object
+      properties:
+        type:
+          $ref: "#/components/schemas/DNSRecordType"
+        id:
+          type: string
+        attributes:
+          $ref: "#/components/schemas/DNSRecordAttributes"
+      additionalProperties: false
+
+    DNSRecordsResponse:
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              type: array
+              items:
+                $ref: "#/components/schemas/DNSRecord"
+        metadata:
+          $ref: "#/components/schemas/DNSRecordMetadata"
+      additionalProperties: false
+
+    DNSRecordCreate:
+      type: object
+      properties:
+        attributes:
+          $ref: "#/components/schemas/DNSRecordAttributes"
+      additionalProperties: false
+
+    DNSRecordResponse:
+      type: object
+      properties:
+        result:
+          type: object
+          properties:
+            data:
+              $ref: "#/components/schemas/DNSRecord"
+        metadata:
+          $ref: "#/components/schemas/DNSRecordMetadata"
+
+    DNSNullRecordResponse:
+      type: object
+      properties:
+        result:
+          type: "null"
+        metadata:
+          $ref: "#/components/schemas/DNSRecordMetadata"
+
+paths:
+  /domains/{domain}/dns/{recordType}:
+    parameters:
+      - $ref: "#/components/parameters/domainPath"
+    get:
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: |
+            Returns the registered records for the domain
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DNSRecordsResponse"
+    post:
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DNSRecordCreate"
+      responses:
+        "200":
+          description: |
+            Return the newly created record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DNSRecordResponse"
+  /domains/{domain}/dns/{recordType}/{id}:
+    parameters:
+      - $ref: "#/components/parameters/domainPath"
+      - $ref: "#/components/parameters/idPath"
+    patch:
+      security:
+        - cookieAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DNSRecord"
+      responses:
+        "200":
+          description: |
+            Return the modified record
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DNSRecordResponse"
+    delete:
+      security:
+        - cookieAuth: []
+      responses:
+        "200":
+          description: |
+            Return a null object
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DNSNullRecordResponse"
